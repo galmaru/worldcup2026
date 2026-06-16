@@ -154,7 +154,7 @@ const G = [
     {id:'TUR',n:'튀르키예',f:'🇹🇷'},
   ],ms:[
     {d:'6/13',t:'10:00',h:'USA',a:'PAR',hs:4,as:1},
-    {d:'6/14',t:'13:00',h:'AUS',a:'TUR'},
+    {d:'6/14',t:'13:00',h:'AUS',a:'TUR',hs:2,as:0},
     {d:'6/20',t:'04:00',h:'USA',a:'AUS'},
     {d:'6/20',t:'12:00',h:'TUR',a:'PAR'},
     {d:'6/26',t:'11:00',h:'PAR',a:'AUS'},
@@ -167,7 +167,7 @@ const G = [
     {id:'CUW',n:'퀴라소',f:'🇨🇼'},
   ],ms:[
     {d:'6/15',t:'02:00',h:'GER',a:'CUW',hs:7,as:1},
-    {d:'6/15',t:'08:00',h:'ECU',a:'CIV'},
+    {d:'6/15',t:'08:00',h:'ECU',a:'CIV',hs:0,as:1},
     {d:'6/21',t:'05:00',h:'GER',a:'CIV'},
     {d:'6/21',t:'09:00',h:'ECU',a:'CUW'},
     {d:'6/26',t:'05:00',h:'CUW',a:'CIV'},
@@ -179,8 +179,8 @@ const G = [
     {id:'SWE',n:'스웨덴',f:'🇸🇪'},
     {id:'TUN',n:'튀니지',f:'🇹🇳'},
   ],ms:[
-    {d:'6/15',t:'05:00',h:'NED',a:'JPN'},
-    {d:'6/15',t:'11:00',h:'SWE',a:'TUN'},
+    {d:'6/15',t:'05:00',h:'NED',a:'JPN',hs:2,as:2},
+    {d:'6/15',t:'11:00',h:'SWE',a:'TUN',hs:5,as:1},
     {d:'6/21',t:'02:00',h:'NED',a:'SWE'},
     {d:'6/21',t:'13:00',h:'TUN',a:'JPN'},
     {d:'6/26',t:'08:00',h:'TUN',a:'NED'},
@@ -192,8 +192,8 @@ const G = [
     {id:'EGY',n:'이집트',f:'🇪🇬'},
     {id:'NZL',n:'뉴질랜드',f:'🇳🇿'},
   ],ms:[
-    {d:'6/16',t:'04:00',h:'BEL',a:'EGY'},
-    {d:'6/16',t:'10:00',h:'IRN',a:'NZL'},
+    {d:'6/16',t:'04:00',h:'BEL',a:'EGY',hs:1,as:1},
+    {d:'6/16',t:'10:00',h:'IRN',a:'NZL',hs:2,as:2},
     {d:'6/22',t:'04:00',h:'BEL',a:'IRN'},
     {d:'6/22',t:'10:00',h:'NZL',a:'EGY'},
     {d:'6/27',t:'12:00',h:'EGY',a:'IRN'},
@@ -205,8 +205,8 @@ const G = [
     {id:'KSA',n:'사우디아라비아',f:'🇸🇦'},
     {id:'CPV',n:'카보베르데',f:'🇨🇻'},
   ],ms:[
-    {d:'6/16',t:'01:00',h:'ESP',a:'CPV'},
-    {d:'6/16',t:'07:00',h:'KSA',a:'URU'},
+    {d:'6/16',t:'01:00',h:'ESP',a:'CPV',hs:0,as:0},
+    {d:'6/16',t:'07:00',h:'KSA',a:'URU',hs:1,as:1},
     {d:'6/22',t:'01:00',h:'ESP',a:'KSA'},
     {d:'6/22',t:'07:00',h:'URU',a:'CPV'},
     {d:'6/27',t:'09:00',h:'CPV',a:'KSA'},
@@ -368,11 +368,9 @@ function load() {
 }
 
 function getScore(gid, mi, m) {
+  if (m.hs != null) return {hs: m.hs, as: m.as};  // 서버 데이터 우선
   const ov = load();
-  const k = `${gid}_${mi}`;
-  if (ov[k]) return ov[k];
-  if (m.hs != null) return {hs: m.hs, as: m.as};
-  return null;
+  return ov[`${gid}_${mi}`] || null;
 }
 
 
