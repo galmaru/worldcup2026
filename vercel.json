@@ -1,0 +1,3 @@
+{
+  "rewrites": [{"source": "/", "destination": "/worldcup2026.html"}]
+}
