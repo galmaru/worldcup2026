@@ -2,8 +2,8 @@ name: 월드컵 점수 자동 업데이트
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 30분마다 실행
-  workflow_dispatch:         # 수동 실행 가능
+    - cron: '0 * * * *'  # 1시간마다 실행
+  workflow_dispatch:      # 수동 실행 가능
 
 jobs:
   update:
@@ -25,3 +25,11 @@ jobs:
             git commit -m "경기 결과 자동 업데이트"
             git push
           fi
+
+      - name: Slack 알림
+        if: hashFiles('changes.txt') != ''
+        run: |
+          CHANGES=$(cat changes.txt | sed 's/$/\\n/' | tr -d '\n')
+          curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H 'Content-type: application/json' \
+            -d "{\"text\":\"⚽ *FIFA 월드컵 결과 업데이트*\n${CHANGES}\"}"
