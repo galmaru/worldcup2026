@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API 잔여량</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 { font-size: 1.25rem; font-weight: 600; color: #f8fafc; }
+
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+
+    #last-updated { font-size: 0.75rem; color: #64748b; }
+
+    button.refresh {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button.refresh:hover { background: #273548; color: #e2e8f0; }
+    button.refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .cards {
+      width: 100%;
+      max-width: 760px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-logo { width: 24px; height: 24px; border-radius: 4px; object-fit: contain; }
+
+    .card-title { font-size: 0.95rem; font-weight: 600; color: #cbd5e1; }
+
+    .balance-label { font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem; }
+
+    .balance-amount {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.2rem;
+    }
+
+    .balance-amount.error { font-size: 1rem; color: #f87171; font-weight: 400; }
+
+    .balance-sub { font-size: 0.75rem; color: #64748b; margin-bottom: 1rem; }
+
+    .progress-wrap { margin-bottom: 1rem; }
+    .progress-bar-bg {
+      background: #0f1117;
+      border-radius: 9999px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+      background: #3b82f6;
+    }
+    .progress-bar-fill.warning { background: #f59e0b; }
+    .progress-bar-fill.danger  { background: #ef4444; }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: #475569;
+      margin-top: 0.35rem;
+    }
+
+    /* OpenAI 설정 섹션 */
+    .settings {
+      border-top: 1px solid #334155;
+      padding-top: 1rem;
+      margin-top: 0.25rem;
+    }
+
+    .settings-title {
+      font-size: 0.7rem;
+      color: #475569;
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .settings-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+
+    .settings-row label { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; align-self: center; min-width: 60px; }
+
+    .settings-row input {
+      flex: 1;
+      background: #0f1117;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.5rem;
+    }
+
+    .settings-row input:focus { outline: none; border-color: #3b82f6; }
+
+    button.save-settings {
+      width: 100%;
+      background: #2563eb;
+      border: none;
+      color: #fff;
+      padding: 0.45rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button.save-settings:hover { background: #1d4ed8; }
+
+    .badge-estimated {
+      font-size: 0.65rem;
+      background: #1e3a5f;
+      color: #93c5fd;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      margin-left: 0.4rem;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>API 잔여량</h1>
+  <div class="header-right">
+    <span id="last-updated">—</span>
+    <button class="refresh" id="btn-refresh">새로고침</button>
+  </div>
+</header>
+
+<div class="cards">
+
+  <!-- OpenRouter 카드 -->
+  <div class="card" id="card-openrouter">
+    <div class="card-header">
+      <svg class="card-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#6d28d9"/>
+        <path d="M6 12h12M12 6l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="card-title">OpenRouter</span>
+    </div>
+    <div class="balance-label">남은 크레딧</div>
+    <div class="balance-amount" id="or-remaining">—</div>
+    <div class="balance-sub" id="or-sub">로딩 중...</div>
+    <div class="progress-wrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="or-bar" style="width:0%"></div>
+      </div>
+      <div class="progress-label">
+        <span id="or-pct-label">사용 0%</span>
+        <span id="or-total-label">총 $0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- OpenAI 카드 -->
+  <div class="card" id="card-openai">
+    <div class="card-header">
+      <svg class="card-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="4" fill="#10a37f"/>
+        <path d="M12 4.5a4.5 4.5 0 0 1 4.5 4.5c0 1.08-.38 2.07-1.01 2.84L18 14.25l-1.5 1.5-2.41-2.41A4.47 4.47 0 0 1 12 13.5a4.5 4.5 0 1 1 0-9z" fill="#fff" opacity=".9"/>
+      </svg>
+      <span class="card-title">OpenAI<span class="badge-estimated">추정</span></span>
+    </div>
+    <div class="balance-label">추정 잔액</div>
+    <div class="balance-amount" id="oa-remaining">—</div>
+    <div class="balance-sub" id="oa-sub">기준 잔액과 날짜를 설정하세요</div>
+    <div class="progress-wrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="oa-bar" style="width:0%"></div>
+      </div>
+      <div class="progress-label">
+        <span id="oa-pct-label">사용 0%</span>
+        <span id="oa-total-label">기준 $0</span>
+      </div>
+    </div>
+
+    <div class="settings">
+      <div class="settings-title">기준 설정</div>
+      <div class="settings-row">
+        <label for="oa-base-amount">기준 잔액</label>
+        <input id="oa-base-amount" type="number" min="0" step="0.01" placeholder="예: 20.00" />
+      </div>
+      <div class="settings-row">
+        <label for="oa-base-date">기준 날짜</label>
+        <input id="oa-base-date" type="date" />
+      </div>
+      <button class="save-settings" id="btn-save-settings">저장 후 새로고침</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  const $ = id => document.getElementById(id);
+
+  // 숫자 포맷: $12.34
+  function fmt(n) {
+    return '$' + n.toFixed(2);
+  }
+
+  // 진행 바 색상 결정 (사용률 기준)
+  function barClass(pct) {
+    if (pct >= 90) return 'danger';
+    if (pct >= 70) return 'warning';
+    return '';
+  }
+
+  // localStorage에서 OpenAI 기준 설정 로드
+  function loadOASettings() {
+    return {
+      amount: parseFloat(localStorage.getItem('openai_base_amount') || '0'),
+      date: localStorage.getItem('openai_base_date') || '',
+    };
+  }
+
+  // 페이지 로드 시 입력 필드 복원
+  function restoreOAInputs() {
+    const { amount, date } = loadOASettings();
+    if (amount) $('oa-base-amount').value = amount;
+    if (date)   $('oa-base-date').value = date;
+  }
+
+  // OpenRouter 카드 갱신
+  async function refreshOpenRouter() {
+    $('or-remaining').className = 'balance-amount';
+    $('or-remaining').textContent = '로딩 중...';
+    $('or-sub').textContent = '';
+
+    try {
+      const res = await fetch('/api/openrouter');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      const remaining = data.total_credits - data.total_usage;
+      const pct = data.total_credits > 0
+        ? Math.min(100, (data.total_usage / data.total_credits) * 100)
+        : 0;
+
+      $('or-remaining').textContent = fmt(remaining);
+      $('or-sub').textContent = `사용 ${fmt(data.total_usage)} / 충전 ${fmt(data.total_credits)}`;
+      $('or-bar').style.width = pct + '%';
+      $('or-bar').className = 'progress-bar-fill ' + barClass(pct);
+      $('or-pct-label').textContent = `사용 ${pct.toFixed(1)}%`;
+      $('or-total-label').textContent = `총 ${fmt(data.total_credits)}`;
+    } catch (e) {
+      $('or-remaining').className = 'balance-amount error';
+      $('or-remaining').textContent = e.message;
+      $('or-sub').textContent = '';
+    }
+  }
+
+  // OpenAI 카드 갱신
+  async function refreshOpenAI() {
+    const { amount: baseAmount, date: baseDate } = loadOASettings();
+
+    $('oa-remaining').className = 'balance-amount';
+
+    if (!baseAmount || !baseDate) {
+      $('oa-remaining').textContent = '—';
+      $('oa-sub').textContent = '기준 잔액과 날짜를 입력하세요';
+      return;
+    }
+
+    $('oa-remaining').textContent = '로딩 중...';
+    $('oa-sub').textContent = '';
+
+    try {
+      // baseDate(YYYY-MM-DD)를 Unix 초로 변환
+      const startUnix = Math.floor(new Date(baseDate).getTime() / 1000);
+      const res = await fetch(`/api/openai-cost?start_time=${startUnix}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      const remaining = baseAmount - data.total_cost;
+      const pct = baseAmount > 0
+        ? Math.min(100, (data.total_cost / baseAmount) * 100)
+        : 0;
+
+      $('oa-remaining').textContent = fmt(remaining);
+      $('oa-sub').textContent = `사용 ${fmt(data.total_cost)} / 기준 ${fmt(baseAmount)} (${baseDate} 이후)`;
+      $('oa-bar').style.width = pct + '%';
+      $('oa-bar').className = 'progress-bar-fill ' + barClass(pct);
+      $('oa-pct-label').textContent = `사용 ${pct.toFixed(1)}%`;
+      $('oa-total-label').textContent = `기준 ${fmt(baseAmount)}`;
+    } catch (e) {
+      $('oa-remaining').className = 'balance-amount error';
+      $('oa-remaining').textContent = e.message;
+      $('oa-sub').textContent = '';
+    }
+  }
+
+  // 전체 새로고침
+  async function refreshAll() {
+    $('btn-refresh').disabled = true;
+    await Promise.all([refreshOpenRouter(), refreshOpenAI()]);
+    $('last-updated').textContent = '갱신: ' + new Date().toLocaleTimeString('ko-KR');
+    $('btn-refresh').disabled = false;
+  }
+
+  // OpenAI 설정 저장
+  $('btn-save-settings').addEventListener('click', () => {
+    const amount = $('oa-base-amount').value;
+    const date   = $('oa-base-date').value;
+    if (!amount || !date) { alert('기준 잔액과 날짜를 모두 입력하세요.'); return; }
+    localStorage.setItem('openai_base_amount', amount);
+    localStorage.setItem('openai_base_date', date);
+    refreshAll();
+  });
+
+  $('btn-refresh').addEventListener('click', refreshAll);
+
+  // 페이지 진입 시 자동 새로고침
+  restoreOAInputs();
+  refreshAll();
+</script>
+
+</body>
+</html>
