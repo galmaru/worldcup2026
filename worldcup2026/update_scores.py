@@ -1,6 +1,8 @@
 import json, re, urllib.request, sys, os
 from datetime import date, timedelta
 
+HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'worldcup2026.html')
+
 ALIAS = {
     'SKO':'KOR','KOR':'KOR','MEX':'MEX','CZE':'CZE','RSA':'RSA','SAF':'RSA',
     'CAN':'CAN','SUI':'SUI','QAT':'QAT','BIH':'BIH','BOS':'BIH',
@@ -59,7 +61,7 @@ for i in range(20):
             except:
                 pass
 
-with open('worldcup2026.html', encoding='utf-8') as f:
+with open(HTML_FILE, encoding='utf-8') as f:
     html = f.read()
 
 # 기존 점수 추출 (변경 감지용)
@@ -111,5 +113,5 @@ else:
 if updated == html:
     sys.exit(0)
 
-with open('worldcup2026.html', 'w', encoding='utf-8') as f:
+with open(HTML_FILE, 'w', encoding='utf-8') as f:
     f.write(updated)
